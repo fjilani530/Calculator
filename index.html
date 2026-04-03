@@ -1,39 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KG coding calculator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>KG Coding Calculator</title>
 </head>
-<body>
-    <div id="border">
-        <input type="text" id="display" readonly>
-        <div class="button-container">
-            <button class="button" onclick="currentDisplay=''; document.querySelector('#display').value = currentDisplay;">C</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'1';document.querySelector('#display').value = currentDisplay;">1</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'2';document.querySelector('#display').value = currentDisplay;">2</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'+';document.querySelector('#display').value = currentDisplay;">+</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'3';document.querySelector('#display').value = currentDisplay;">3</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'4';document.querySelector('#display').value = currentDisplay;">4</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'-';document.querySelector('#display').value = currentDisplay;">-</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'5';document.querySelector('#display').value = currentDisplay;">5</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'6';document.querySelector('#display').value = currentDisplay;">6</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'*';document.querySelector('#display').value = currentDisplay;">*</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'7';document.querySelector('#display').value = currentDisplay;">7</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'8';document.querySelector('#display').value = currentDisplay;">8</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'/';document.querySelector('#display').value = currentDisplay;">/</button>
 
-            <button class="button" onclick="let result = eval(currentDisplay); currentDisplay=result; document.querySelector('#display').value = currentDisplay;">=</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'9';document.querySelector('#display').value = currentDisplay;">9</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'0';document.querySelector('#display').value = currentDisplay;">0</button>
-            <button class="button" onclick="currentDisplay=currentDisplay+'.';document.querySelector('#display').value = currentDisplay;">.</button>
+<body>
+
+    <div class="calculator">
+        <input type="text" id="display" readonly>
+        <div class="button-grid">
+            <!-- Row 1 -->
+            <button class="btn-clear">C</button>
+            <button class="btn-operator">/</button>
+            <button class="btn-operator">*</button>
+            <button class="btn-operator">-</button>
+
+            <!-- Row 2 -->
+            <button class="btn-number">7</button>
+            <button class="btn-number">8</button>
+            <button class="btn-number">9</button>
+            <button class="btn-operator">+</button>
+
+            <!-- Row 3 -->
+            <button class="btn-number">4</button>
+            <button class="btn-number">5</button>
+            <button class="btn-number">6</button>
+            <button class="btn btn-operator" id="backspace">⌫</button>
+            <!-- empty cell for alignment -->
+
+            <!-- Row 4 -->
+            <button class="btn-number">1</button>
+            <button class="btn-number">2</button>
+            <button class="btn-number">3</button>
+            <button class="btn btn-equals" data-action="equals">=</button> <!-- empty cell for alignment -->
+
+            <!-- Row 5 -->
+            <!-- Last row: Backspace, 0, ., = -->
+            <button class="btn btn-number btn-zero" data-num="0">0</button>
+            <button class="btn btn-decimal" data-num=".">.</button>
+
+            <div></div>
+            <!-- empty cell for alignment -->
         </div>
     </div>
     <script>
-        let currentDisplay = '';
-        document.querySelector('#display').value = currentDisplay; 
 
+        // Select display input
+        const display = document.getElementById('display');
+
+        // State variable
+        let currentDisplay = '';
+
+        // Update display function
+        function updateDisplay() {
+            display.value = currentDisplay || '0';
+        }
+
+        // Handle number/operator buttons
+        const numberButtons = document.querySelectorAll('.btn-number');
+        const operatorButtons = document.querySelectorAll('.btn-operator');
+        const decimalButton = document.querySelector('.btn-decimal');
+        const clearButton = document.querySelector('.btn-clear');
+        const equalsButton = document.querySelector('.btn-equals');
+        const backspaceButton = document.getElementById('backspace');
+
+        // ---------------------------
+        // Numbers
+        numberButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentDisplay += btn.textContent;
+                updateDisplay();
+            });
+        });
+
+        // ---------------------------
+        // Operators (+ - * /)
+        operatorButtons.forEach(btn => {
+            // Skip backspace (it also has btn-operator class)
+            if (btn.id === 'backspace') return;
+
+            btn.addEventListener('click', () => {
+                // Avoid multiple consecutive operators
+                if (currentDisplay === '') return; // Don't start with operator
+                if (/[+\-*/]$/.test(currentDisplay)) {
+                    // Replace last operator
+                    currentDisplay = currentDisplay.slice(0, -1);
+                }
+                currentDisplay += btn.textContent;
+                updateDisplay();
+            });
+        });
+
+        // ---------------------------
+        // Decimal
+        decimalButton.addEventListener('click', () => {
+            // Prevent multiple decimals in current number
+            const tokens = currentDisplay.split(/[+\-*/]/);
+            const lastToken = tokens[tokens.length - 1];
+            if (!lastToken.includes('.')) {
+                currentDisplay += '.';
+                updateDisplay();
+            }
+        });
+
+        // ---------------------------
+        // Clear
+        clearButton.addEventListener('click', () => {
+            currentDisplay = '';
+            updateDisplay();
+        });
+
+        // ---------------------------
+        // Equals
+        equalsButton.addEventListener('click', () => {
+            if (currentDisplay === '') return;
+            try {
+                // Replace symbols with JS operators if needed (× ÷ −)
+                let expression = currentDisplay.replace(/×/g, '*')
+                    .replace(/÷/g, '/')
+                    .replace(/−/g, '-');
+
+                // Remove trailing operator if exists
+                if (/[+\-*/]$/.test(expression)) {
+                    expression = expression.slice(0, -1);
+                }
+
+                // Evaluate
+                let result = Function('"use strict"; return (' + expression + ')')();
+
+                // Format result
+                if (Number.isInteger(result)) {
+                    currentDisplay = result.toString();
+                } else {
+                    currentDisplay = parseFloat(result.toFixed(8)).toString();
+                }
+                updateDisplay();
+            } catch {
+                currentDisplay = '';
+                display.value = 'Error';
+                setTimeout(updateDisplay, 900);
+            }
+        });
+
+        // ---------------------------
+        // Backspace
+        backspaceButton.addEventListener('click', () => {
+            currentDisplay = currentDisplay.slice(0, -1);
+            updateDisplay();
+        });
     </script>
+
 </body>
+
 </html>
